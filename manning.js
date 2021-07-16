@@ -19,16 +19,12 @@ function plotMe() {
     }
     Plotly.newPlot('plot', data, layout, {editable: true});
 
-    /*myPlot.on('plotly_click', function(){
-        alert('You clicked this Plotly chart!');
-    });*/
-
     myPlot.on('plotly_click', function(data){
         var pts = '';
         for(var i=0; i<data.points.length; i++){
             
-            annotate_text = 'x = '+data.points[i].x +
-                          ', y = '+data.points[i].y.toPrecision(4);
+            annotate_text = 'h = '+data.points[i].x +
+                          '%, Q = '+data.points[i].y.toPrecision(4) + '[m^3/hr]';
             
             annotation = {
               text: annotate_text,
@@ -75,7 +71,7 @@ function calcLine(D, slope) {
         return Q;   // flow [m^3/hr]
     });
     var trace = {
-        x: fill, 
+        x: 100*fill, 
         y: Q, 
         name: 'pipe'+ pipeNum,
         type: 'scatter'
