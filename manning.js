@@ -1,7 +1,6 @@
 
 function plotMe() {
 
-
     var myPlot = document.getElementById('plot');
 
     var data = [];
@@ -9,12 +8,21 @@ function plotMe() {
         addPipe(data, i.toString());
 
     var layout = {
+        grid: {
+            rows: 2,
+            columns: 1,
+            pattern: 'coupled',
+            roworder: 'top to bottom'
+          },
         title: 'Flow Rate vs Pipe Fill',
         xaxis: {
             title: 'Fill Ratio [%]'
         }, 
         yaxis: {
             title: 'Flow [m^3/hr]'
+        },
+        yaxis2: {
+            title: 'Velocity [m/s]'
         }
     }
     Plotly.newPlot('plot', data, layout, {editable: true});
@@ -29,7 +37,9 @@ function plotMe() {
             annotation = {
               text: annotate_text,
               x: data.points[i].x,
-              y: parseFloat(data.points[i].y.toPrecision(4))
+              y: parseFloat(data.points[i].y.toPrecision(4)),
+              xref: data.points[0].xaxis._id,
+              yref: data.points[0].yaxis._id
             }
             annotations = plot.layout.annotations || [];
             annotations.push(annotation);
@@ -43,8 +53,9 @@ function addPipe(data, pipeNum) {
         let D = 0.001*parseFloat( document.getElementById('txt_D' + pipeNum).value );
         let slope = 0.01*parseFloat( document.getElementById('txt_slope' + pipeNum).value );
         let nmSlope = 'txt_slope' + pipeNum;
-        data.push(calcLine(D,slope));
-        //return calcLine(D,slope);
+        var flowData = calcLine(D,slope);
+        data.push(addLine('pipe'+ pipeNum,1,flowData.fill,flowData.Q));
+        data.push(addLine('pipe'+ pipeNum,2,flowData.fill,flowData.V));
 }
     return;
 
@@ -55,7 +66,7 @@ function calcLine(D, slope) {
 
     fill = makeArr(0, 1, 101);
 
-    let Q = fill.map(function(f){
+    /*let Q = fill.map(function(f){
         if (f<=0.5) {
             var q = 2*Math.acos(1-2*f);
             var A = r**2 * (q - Math.sin(q)) / 2;
@@ -69,15 +80,53 @@ function calcLine(D, slope) {
 
         let Q = A / n * rh**(2/3) * Math.sqrt(slope) * 3600;   // flow [m^3/hr]
         return Q;   // flow [m^3/hr]
+    });*/
+
+    let Qv = [];
+    let Vv = [];
+    fill.forEach(f => {
+        if (f<=0.5) {
+            var q = 2*Math.acos(1-2*f);
+            var A = r**2 * (q - Math.sin(q)) / 2;
+            var rh = A / (r * q);
+        } else // f > 0.5
+        {
+            var q = 2*Math.acos(2*f-1);
+            var A = Math.PI * r**2 - r**2 * (q - Math.sin(q)) / 2;
+            var rh = A / (2*r * Math.PI - r * q);
+        }
+
+        let Q = A / n * rh**(2/3) * Math.sqrt(slope) * 3600;   // flow [m^3/hr]
+        let V = Q / A / 3600;
+        Qv.push(Q);
+        Vv.push(V);
     });
-    var trace = {
+    let res = {'fill':fill,'Q':Qv, 'V':Vv};
+    return res;
+    }
+
+
+    function addLine(vName, ax, x,y) {
+
+        var trace = {
+          x: x,
+          y: y,
+          yaxis: 'y' + ax,
+          name: vName,
+          type: 'scatter',
+        };
+        return trace;
+      } 
+    /*var trace = {
         x: 100*fill, 
-        y: Q, 
+        y: Qv, 
         name: 'pipe'+ pipeNum,
+        xaxis: 'x',
+        yaxis: 'y',
         type: 'scatter'
     }
-    return trace;
-}
+    return trace;*/
+
 }
 
 function makeArr(startValue, stopValue, cardinality) {
